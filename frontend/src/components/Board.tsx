@@ -383,27 +383,79 @@ const Board: React.FC = () => {
       source.index === destination.index
     ) {
       console.log('🔄 Same position, no move needed')
+      setIsDragging(false)
       return
     }
 
+    // Extract task ID from draggableId format "task-{id}"
+    const taskId = parseInt(draggableId.replace('task-', ''))
+    const sourceColumnId = parseInt(source.droppableId)
+    const destColumnId = parseInt(destination.droppableId)
+    
+    // Save the old board state for rollback
+    const previousBoard = selectedBoard
+    
     try {
-      console.log('🚀 Calling API to move task...')
-      // Extract task ID from draggableId format "task-{id}"
-      const taskId = parseInt(draggableId.replace('task-', ''))
-      // Move task to new column and position
-      await taskAPI.moveTask(
-        taskId, 
-        parseInt(destination.droppableId), 
-        destination.index
-      )
+      // OPTIMISTIC UPDATE: Update UI immediately for instant feedback
+      // Deep clone the board to avoid reference issues
+      const updatedBoard = {
+        ...selectedBoard,
+        columns: selectedBoard.columns.map(col => ({
+          ...col,
+          tasks: [...col.tasks]
+        }))
+      }
+      
+      const sourceColumn = updatedBoard.columns.find(col => col.id === sourceColumnId)
+      const destColumn = updatedBoard.columns.find(col => col.id === destColumnId)
+      
+      if (!sourceColumn || !destColumn) {
+        console.error('❌ Column not found')
+        setIsDragging(false)
+        return
+      }
+      
+      // Find and remove task from source column
+      const taskIndex = sourceColumn.tasks.findIndex(t => t.id === taskId)
+      if (taskIndex === -1) {
+        console.error('❌ Task not found')
+        setIsDragging(false)
+        return
+      }
+      
+      const [movedTask] = sourceColumn.tasks.splice(taskIndex, 1)
+      
+      // Update task's column_id if moving to different column
+      if (sourceColumnId !== destColumnId) {
+        movedTask.column_id = destColumnId
+      }
+      
+      // Insert task into destination column at the new position
+      destColumn.tasks.splice(destination.index, 0, movedTask)
+      
+      console.log('📊 After optimistic update:', {
+        sourceColumn: sourceColumn.name,
+        sourceTasks: sourceColumn.tasks.map(t => t.title),
+        destColumn: destColumn.name,
+        destTasks: destColumn.tasks.map(t => t.title),
+      })
+      
+      // Update state immediately for smooth UX
+      setSelectedBoard(updatedBoard)
+      setIsDragging(false)
+      
+      console.log('🚀 Optimistic update complete, calling API...')
+      
+      // Make API call in background
+      await taskAPI.moveTask(taskId, destColumnId, destination.index)
       console.log('✅ API call successful')
       
-      // Reload the current board to keep indices consistent and avoid modifying lists mid-drag
-      await loadBoards()
     } catch (err: any) {
       console.error('❌ Failed to move task:', err)
+      
+      // ROLLBACK: Restore previous state on error
+      setSelectedBoard(previousBoard)
       setError(err.response?.data?.detail || 'Failed to move task')
-    } finally {
       setIsDragging(false)
     }
   }

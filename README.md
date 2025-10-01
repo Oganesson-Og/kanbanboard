@@ -6,7 +6,7 @@ A full-stack Kanban board application built with React TypeScript frontend and F
 
 ### Core Functionality
 - **Kanban Board Interface**: Classic board view with customizable columns
-- **Drag-and-Drop**: Smooth task movement between columns
+- **Drag-and-Drop**: Ultra-smooth task movement with instant visual feedback and optimistic updates
 - **Task Management**: Create, edit, and delete tasks with rich information
 - **Customizable Columns**: Create, rename, and delete columns to fit your workflow
 
@@ -16,9 +16,11 @@ A full-stack Kanban board application built with React TypeScript frontend and F
 - **User Mentions**: @mentions in comments for notifications
 - **Tags/Labels**: Organize tasks with customizable tags
 
-### Real-time Updates
+### Real-time Updates & Performance
 - **WebSocket Integration**: Real-time updates across all connected clients
 - **Live Collaboration**: See changes made by team members instantly
+- **Optimistic UI Updates**: Instant feedback when dragging tasks - no waiting for server responses
+- **Smart Re-rendering**: Memoized computations prevent unnecessary re-renders during interactions
 
 ## Tech Stack
 

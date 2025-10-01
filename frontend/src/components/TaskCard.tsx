@@ -12,9 +12,21 @@ interface TaskCardProps {
 }
 
 const TaskCardContainer = styled(Card)`
-  margin-bottom: 12px;
   cursor: grab;
   border-left: 3px solid ${({ theme }) => theme.color.brand[500]};
+  user-select: none;
+  
+  /* Override Card's default transitions to prevent interference with drag */
+  transition: none !important;
+  transform: none !important;
+  
+  &:hover {
+    transform: none !important;
+  }
+  
+  &:active {
+    cursor: grabbing;
+  }
 `
 
 const TaskTitle = styled.h4`
@@ -165,14 +177,12 @@ const ActionsGroup = styled.div`
 const DangerIconButton = styled(IconButton).attrs({ $variant: 'danger' as const })``
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, onCommentsClick, onEditClick, onDeleteClick, isDone }) => {
-  const [isExpanded, setIsExpanded] = useState(false)
-
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
   }
 
   return (
-    <TaskCardContainer as="article" aria-label={task.title} onClick={() => setIsExpanded(!isExpanded)}>
+    <TaskCardContainer as="article" aria-label={task.title}>
       <TaskTitle>{task.title}</TaskTitle>
 
       {task.description && (

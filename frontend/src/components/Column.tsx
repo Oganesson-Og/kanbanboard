@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo, CSSProperties } from 'react'
 import styled from 'styled-components'
 import { Droppable, Draggable, DroppableProvided, DroppableStateSnapshot, DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd'
 import { Column as ColumnType, Task } from '../types'
@@ -77,14 +77,47 @@ const AddTaskButton = styled.button`
 `
 
 const Column: React.FC<ColumnProps> = ({ column, onTaskCommentsClick, onTaskEditClick, onTaskDeleteClick, onAddTaskClick }) => {
-  const totalRemaining = column.tasks.reduce((sum, t) => {
-    const estimated = t.estimated_hours || 0
-    const done = (t.completed_hours ?? t.hours_used) || 0
-    const remaining = Math.max(0, estimated - done)
-    return sum + remaining
-  }, 0)
+  const totalRemaining = useMemo(() => {
+    return column.tasks.reduce((sum, t) => {
+      const estimated = t.estimated_hours || 0
+      const done = (t.completed_hours ?? t.hours_used) || 0
+      const remaining = Math.max(0, estimated - done)
+      return sum + remaining
+    }, 0)
+  }, [column.tasks])
 
   const formatHours = (h: number) => `${Math.round(h * 10) / 10}h`
+
+  const isDone = useMemo(() => column.name.toLowerCase() === 'done', [column.name])
+
+  // Memoize droppable list style to prevent recreation
+  const getDroppableStyle = (isDraggingOver: boolean): CSSProperties => ({
+    background: isDraggingOver ? 'rgba(99,102,241,0.06)' : 'transparent',
+    borderRadius: '8px',
+    padding: '2px',
+  })
+
+  // Memoize draggable item style for better performance
+  const getDraggableStyle = (
+    isDragging: boolean,
+    draggableStyle: any
+  ): CSSProperties => {
+    const style: CSSProperties = {
+      ...draggableStyle,
+      userSelect: 'none' as const,
+      cursor: isDragging ? 'grabbing' : 'grab',
+      boxShadow: isDragging
+        ? '0 8px 20px rgba(0,0,0,0.15)'
+        : 'none',
+    }
+    
+    // Only apply pointer-events change when dragging
+    if (isDragging) {
+      style.pointerEvents = 'none'
+    }
+    
+    return style
+  }
 
   return (
     <ColumnContainer role="section" aria-labelledby={`col-${column.id}`}>
@@ -101,32 +134,22 @@ const Column: React.FC<ColumnProps> = ({ column, onTaskCommentsClick, onTaskEdit
           <TaskList
             ref={provided.innerRef}
             {...provided.droppableProps}
-            style={{
-              background: snapshot.isDraggingOver ? 'rgba(99,102,241,0.06)' : 'transparent',
-              borderRadius: '8px',
-              transition: 'background 0.2s ease',
-            }}
+            style={getDroppableStyle(snapshot.isDraggingOver)}
           >
             {column.tasks.map((task, index) => (
-              <Draggable key={`task-${task.id}`} draggableId={`task-${task.id}`} index={index}>
+              <Draggable 
+                key={`task-${task.id}`} 
+                draggableId={`task-${task.id}`} 
+                index={index}
+              >
                 {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     style={{
-                      ...provided.draggableProps.style,
-                      position: 'relative',
-                      zIndex: snapshot.isDragging ? 5000 : 'auto',
-                      transform: snapshot.isDragging && provided.draggableProps.style?.transform
-                        ? `${provided.draggableProps.style.transform} scale(1.02)`
-                        : provided.draggableProps.style?.transform,
-                      boxShadow: snapshot.isDragging
-                        ? '0 12px 30px rgba(0,0,0,0.2)'
-                        : 'none',
-                      transition: snapshot.isDragging
-                        ? 'box-shadow 0.2s ease'
-                        : 'transform 200ms cubic-bezier(0.2, 0, 0, 1), box-shadow 200ms ease',
+                      ...getDraggableStyle(snapshot.isDragging, provided.draggableProps.style),
+                      marginBottom: '8px',
                     }}
                   >
                     <TaskCard
@@ -134,7 +157,7 @@ const Column: React.FC<ColumnProps> = ({ column, onTaskCommentsClick, onTaskEdit
                       onCommentsClick={() => onTaskCommentsClick && onTaskCommentsClick(task)}
                       onEditClick={() => onTaskEditClick && onTaskEditClick(task)}
                       onDeleteClick={() => onTaskDeleteClick && onTaskDeleteClick(task)}
-                      isDone={column.name.toLowerCase() === 'done'}
+                      isDone={isDone}
                     />
                   </div>
                 )}
