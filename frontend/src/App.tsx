@@ -1,10 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import styled, { createGlobalStyle, ThemeProvider } from 'styled-components'
-import { theme } from './theme'
+import styled, { createGlobalStyle } from 'styled-components'
 import Board from './components/Board'
 import Login from './components/Login'
 import ErrorBoundary from './components/ErrorBoundary'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 const GlobalStyle = createGlobalStyle`
   * {
@@ -19,8 +19,9 @@ const GlobalStyle = createGlobalStyle`
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: ${theme.color.bg};
-    color: ${theme.color.text.primary};
+    background-color: ${({ theme }) => theme.color.bg};
+    color: ${({ theme }) => theme.color.text.primary};
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   button {
@@ -94,12 +95,12 @@ function AppContent() {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <ThemeProvider theme={theme}>
+      <ThemeProvider>
+        <AuthProvider>
           <GlobalStyle />
           <AppContent />
-        </ThemeProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   )
 }

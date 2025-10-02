@@ -90,7 +90,11 @@ kanban_board/
 - Python 3.8 or higher
 - Node.js 16 or higher
 - npm or yarn
-
+### Cleaning any existing apps and ports
+```
+bash
+lsof -ti:8000 -ti:5173 | xargs kill -9
+```
 ### Backend Setup
 
 1. **Navigate to backend directory:**

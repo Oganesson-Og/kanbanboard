@@ -1,12 +1,11 @@
-import React from 'react'
 import styled, { css } from 'styled-components'
 
 export const Surface = styled.div<{ $elevation?: 0 | 1 | 2 | 3; $padding?: number }>`
   background: ${({ theme }) => theme.color.surface};
   border: 1px solid ${({ theme }) => theme.color.border};
   border-radius: ${({ theme }) => theme.radius.lg}px;
-  box-shadow: ${({ theme, $elevation = 0 }) => theme.shadow[$elevation]};
-  padding: ${({ theme, $padding = 16 }) => `${$padding}px`};
+  box-shadow: ${({ $elevation = 0, theme }) => theme.shadow[$elevation]};
+  padding: ${({ $padding = 16 }) => `${$padding}px`};
 `
 
 export const Toolbar = styled.header`
@@ -18,9 +17,10 @@ export const Toolbar = styled.header`
   justify-content: space-between;
   gap: ${({ theme }) => theme.space[4]}px;
   padding: ${({ theme }) => `${theme.space[3]}px ${theme.space[5]}px`};
-  background: rgba(255,255,255,0.9);
+  background: ${({ theme }) => theme.color.surface};
   backdrop-filter: blur(10px);
   border-bottom: 1px solid ${({ theme }) => theme.color.border};
+  transition: background 0.3s ease, border-color 0.3s ease;
 `
 
 export const IconButton = styled.button<{ $variant?: 'default' | 'danger' }>`

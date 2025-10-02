@@ -3,6 +3,7 @@ import styled from 'styled-components'
 import { Toolbar, HStack, Select as SelectPrimitive, PrimaryButton, IconButton } from './primitives'
 import { User, Board as BoardType } from '../types'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 interface HeaderProps {
   user?: User | null
@@ -56,6 +57,10 @@ const UserEmail = styled.span`
 
 const LogoutButton = styled(IconButton).attrs({ 'aria-label': 'Logout' })``
 
+const ThemeToggleButton = styled(IconButton).attrs({ 'aria-label': 'Toggle theme' })`
+  font-size: 1.2rem;
+`
+
 const CreateBoardButton = styled(PrimaryButton)``
 
 const BoardSelect = styled(SelectPrimitive)`
@@ -64,6 +69,7 @@ const BoardSelect = styled(SelectPrimitive)`
 
 const Header: React.FC<HeaderProps> = ({ user, onCreateBoard, boards = [], selectedBoardId, onSelectBoard }) => {
   const { logout } = useAuth()
+  const { themeMode, toggleTheme } = useTheme()
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -98,6 +104,9 @@ const Header: React.FC<HeaderProps> = ({ user, onCreateBoard, boards = [], selec
           <UserAvatar aria-hidden>
             {getInitials(user.full_name || user.username)}
           </UserAvatar>
+          <ThemeToggleButton onClick={toggleTheme} title={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}>
+            {themeMode === 'light' ? '🌙' : '☀️'}
+          </ThemeToggleButton>
           <LogoutButton onClick={handleLogout}>⎋</LogoutButton>
         </UserInfo>
       )}

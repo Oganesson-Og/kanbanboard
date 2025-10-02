@@ -371,10 +371,17 @@ const Board: React.FC = () => {
     }
 
     const { source, destination, draggableId } = result
-    console.log('📍 Move details:', { 
+    
+    // Enhanced logging to track directional behavior
+    const sourceColId = parseInt(source.droppableId)
+    const destColId = parseInt(destination.droppableId)
+    const direction = sourceColId < destColId ? 'RIGHT→' : (sourceColId > destColId ? '←LEFT' : 'SAME')
+    
+    console.log(`📍 Move details [${direction}]:`, { 
       from: `column ${source.droppableId} index ${source.index}`,
       to: `column ${destination.droppableId} index ${destination.index}`,
-      taskId: draggableId
+      taskId: draggableId,
+      direction
     })
 
     // If dropped in the same position, do nothing

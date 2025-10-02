@@ -1,4 +1,4 @@
-#!/home/oganesson/kanbanboard/backend/.kanbanboard/bin/python3
+#!/Users/Apple/Documents/oops/kanban_board/backend/.kanbanboard/bin/python3.13
 # -*- coding: utf-8 -*-
 import re
 import sys

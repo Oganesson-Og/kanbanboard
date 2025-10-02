@@ -18,7 +18,6 @@ const ColumnContainer = styled(ColumnSurface)`
   display: flex;
   flex-direction: column;
   position: relative;
-  z-index: 0;
 `
 
 const ColumnHeader = styled.div`
@@ -98,22 +97,34 @@ const Column: React.FC<ColumnProps> = ({ column, onTaskCommentsClick, onTaskEdit
   })
 
   // Memoize draggable item style for better performance
+  // Ensure consistent positioning by explicitly handling transform and disabling all transitions
   const getDraggableStyle = (
     isDragging: boolean,
     draggableStyle: any
   ): CSSProperties => {
+    // Extract transform from the drag library's style to ensure it's applied correctly
+    const transform = draggableStyle?.transform || 'none'
+    
     const style: CSSProperties = {
+      // Spread the library's positioning styles first
       ...draggableStyle,
+      // Explicitly reapply transform to ensure it's not overridden
+      transform,
+      // Ensure dragged item appears above neighboring columns
+      zIndex: isDragging ? 1000 : (draggableStyle?.zIndex ?? 'auto'),
+      // Disable all transitions to prevent interference with drag positioning
+      transition: 'none',
+      // Prevent text selection during drag
       userSelect: 'none' as const,
+      // Visual feedback
       cursor: isDragging ? 'grabbing' : 'grab',
       boxShadow: isDragging
         ? '0 8px 20px rgba(0,0,0,0.15)'
         : 'none',
-    }
-    
-    // Only apply pointer-events change when dragging
-    if (isDragging) {
-      style.pointerEvents = 'none'
+      // Prevent pointer events on the dragged element itself
+      pointerEvents: isDragging ? 'none' : 'auto',
+      // Ensure consistent positioning strategy
+      willChange: isDragging ? 'transform' : 'auto',
     }
     
     return style

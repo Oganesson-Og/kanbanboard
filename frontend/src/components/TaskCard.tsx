@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import styled from 'styled-components'
 import { Task } from '../types'
 import { Card, Chip, IconButton } from './primitives'
@@ -16,12 +16,15 @@ const TaskCardContainer = styled(Card)`
   border-left: 3px solid ${({ theme }) => theme.color.brand[500]};
   user-select: none;
   
-  /* Override Card's default transitions to prevent interference with drag */
+  /* CRITICAL: Override Card's default transitions to prevent interference with drag */
+  /* These !important rules ensure no CSS transitions interfere with drag positioning */
   transition: none !important;
   transform: none !important;
+  will-change: auto !important;
   
   &:hover {
     transform: none !important;
+    box-shadow: ${({ theme }) => theme.shadow[2]} !important;
   }
   
   &:active {
