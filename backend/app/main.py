@@ -1,23 +1,92 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import json
-from typing import List
+import logging
+from typing import List, Optional
+from pydantic import BaseModel
+import os
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Changed to DEBUG for more verbose output
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Add startup logging
+logger.info("🚀 KANBAN BOARD API STARTING UP...")
+logger.info("📊 Enhanced logging is ENABLED")
+logger.info("🔍 Debug level logging is ACTIVE")
 
 from . import models, database
 from .database import get_db
 from .models import User, Board, Column, Task, Comment
 from .models import UserCreate, UserResponse, AuthResponse, BoardCreate, BoardResponse, ColumnCreate, ColumnResponse, TaskCreate, TaskResponse, CommentCreate, CommentResponse
+
+# CORS configuration (env-driven with safe localhost defaults)
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+allowed_origins_env = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
+ALLOWED_ORIGINS = (
+    [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+    if allowed_origins_env
+    else DEFAULT_ALLOWED_ORIGINS
+)
+
+ALLOW_ORIGIN_REGEX = os.getenv(
+    "CORS_ALLOW_ORIGIN_REGEX",
+    r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+)
+
+logger.info(f"🌐 CORS allow_origins: {ALLOWED_ORIGINS}")
+logger.info(f"🌐 CORS allow_origin_regex: {ALLOW_ORIGIN_REGEX}")
+logger.info("🌐 CORS allow_credentials: True, allow_methods: *, allow_headers: *")
+
+# Login credentials model
+class LoginCredentials(BaseModel):
+    email: Optional[str] = None
+    username: Optional[str] = None
+    password: str
+
 from .websocket import manager, WebSocketEvent, create_event_message, notify_task_assignment
 from .auth import get_current_user, get_current_user_ws, authenticate_user, create_access_token, get_password_hash
 
 app = FastAPI(title="Kanban Board API", version="1.0.0")
 
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"🔵 REQUEST: {request.method} {request.url}")
+    logger.info(f"📋 Headers: {dict(request.headers)}")
+
+    if request.method == "OPTIONS":
+        origin = request.headers.get("origin")
+        acrm = request.headers.get("access-control-request-method")
+        acrh = request.headers.get("access-control-request-headers")
+        logger.info(
+            f"🟠 CORS PREFLIGHT - origin={origin}, acr-method={acrm}, acr-headers={acrh}"
+        )
+
+    # Log request body for auth endpoints (after processing)
+    if request.url.path in ["/auth/login", "/auth/register"]:
+        logger.info(f"🔍 AUTH REQUEST DETECTED: {request.method} {request.url}")
+
+    response = await call_next(request)
+    logger.info(f"🟢 RESPONSE: {response.status_code} for {request.method} {request.url}")
+    return response
+
 # CORS middleware for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=ALLOW_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,6 +94,7 @@ app.add_middleware(
 
 # OAuth2 scheme for authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+
 
 # Enhanced WebSocket endpoint for real-time updates
 @app.websocket("/ws/{board_id}")
@@ -92,66 +162,105 @@ async def list_users(current_user: User = Depends(get_current_user), db: Session
 
 @app.get("/")
 async def root():
-    return {"message": "Kanban Board API", "version": "1.0.0"}
+    logger.info("🌟 ROOT ENDPOINT HIT - API is running!")
+    return {"message": "Kanban Board API", "version": "1.0.0", "debug": "Enhanced logging is active!"}
 
 @app.post("/auth/register", response_model=AuthResponse)
 async def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Enhanced logging for debugging
+    logger.info(f"📝 REGISTRATION ATTEMPT: {user.username} ({user.email})")
+    logger.info(f"📧 Email: {user.email}")
+    logger.info(f"👤 Username: {user.username}")
+    logger.info(f"👨‍💼 Full Name: {user.full_name}")
+    logger.info(f"🔑 Password: {'*' * len(user.password)}")
+
     # Check if user already exists
-    if db.query(User).filter(User.email == user.email).first():
+    existing_email = db.query(User).filter(User.email == user.email).first()
+    if existing_email:
+        logger.warning(f"❌ Registration failed: Email already exists: {user.email}")
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    if db.query(User).filter(User.username == user.username).first():
+    existing_username = db.query(User).filter(User.username == user.username).first()
+    if existing_username:
+        logger.warning(f"❌ Registration failed: Username already taken: {user.username}")
         raise HTTPException(status_code=400, detail="Username already taken")
 
-    # Hash password and create user
-    hashed_password = get_password_hash(user.password)
-    db_user = User(
-        email=user.email,
-        username=user.username,
-        full_name=user.full_name,
-        hashed_password=hashed_password
-    )
+    try:
+        # Hash password and create user
+        logger.info("🔨 Creating new user account...")
+        hashed_password = get_password_hash(user.password)
+        db_user = User(
+            email=user.email,
+            username=user.username,
+            full_name=user.full_name,
+            hashed_password=hashed_password
+        )
 
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
 
-    # Create access token
-    access_token = create_access_token(data={"sub": str(db_user.id)})
+        logger.info(f"✅ User account created successfully: {db_user.username} (ID: {db_user.id})")
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": db_user.id,
-            "email": db_user.email,
-            "username": db_user.username,
-            "full_name": db_user.full_name,
-            "is_active": db_user.is_active,
-            "created_at": db_user.created_at
+        # Create access token
+        access_token = create_access_token(data={"sub": str(db_user.id)})
+
+        logger.info("🎉 Registration completed successfully")
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": db_user.id,
+                "email": db_user.email,
+                "username": db_user.username,
+                "full_name": db_user.full_name,
+                "is_active": db_user.is_active,
+                "created_at": db_user.created_at
+            }
         }
-    }
+    except Exception as e:
+        logger.error(f"💥 Registration error for {user.username}: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Registration failed due to server error")
 
 @app.post("/auth/login", response_model=AuthResponse)
-async def login_user(form_data: dict, db: Session = Depends(get_db)):
+async def login_user(credentials: LoginCredentials, db: Session = Depends(get_db)):
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Enhanced logging for debugging
+    logger.info(f"🔐 LOGIN ATTEMPT: {credentials}")
+    logger.info(f"📧 Email: {credentials.email}")
+    logger.info(f"👤 Username: {credentials.username}")
+    logger.info(f"🔑 Password: {'*' * len(credentials.password)}")
+
     # Handle both email and username for login
-    username_or_email = form_data.get("username") or form_data.get("email")
-    password = form_data.get("password")
-    
+    username_or_email = credentials.email or credentials.username
+    password = credentials.password
+
+    logger.info(f"🔍 Parsed credentials - username_or_email: {username_or_email}")
+
     if not username_or_email or not password:
+        logger.warning("❌ Login failed: Missing username/email or password")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username/email and password are required"
         )
-    
+
+    logger.info(f"🔎 Authenticating user: {username_or_email}")
     user = authenticate_user(db, username_or_email, password)
     if not user:
+        logger.warning(f"❌ Login failed: Invalid credentials for {username_or_email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username/email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    logger.info(f"✅ Login successful for user: {user.username} (ID: {user.id})")
     access_token = create_access_token(data={"sub": str(user.id)})
 
     return {

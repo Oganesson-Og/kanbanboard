@@ -89,14 +89,26 @@ async def get_current_user_ws(websocket: WebSocket, db: Session = Depends(get_db
 
 def authenticate_user(db: Session, username_or_email: str, password: str):
     """Authenticate a user with username/email and password"""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"🔐 AUTHENTICATING: {username_or_email}")
+
     # Try to find user by username first, then by email
     user = db.query(User).filter(
         (User.username == username_or_email) | (User.email == username_or_email)
     ).first()
-    
+
     if not user:
+        logger.warning(f"❌ AUTH FAILED: User not found: {username_or_email}")
         return False
+
+    logger.info(f"✅ USER FOUND: {user.username} (ID: {user.id})")
+
     if not verify_password(password, user.hashed_password):
+        logger.warning(f"❌ AUTH FAILED: Invalid password for user: {username_or_email}")
         return False
+
+    logger.info(f"🎉 AUTH SUCCESS: Authentication successful for user: {user.username}")
     return user
 
