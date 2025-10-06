@@ -26,6 +26,13 @@ export const lightTheme = {
     brand: { 50: '#EEF2FF', 500: '#6366F1', 600: '#5457E5' },
     danger: { 50: '#FEF2F2', 600: '#DC2626' },
     border: '#E5E7EB',
+    control: {
+      bg: '#FFFFFF',
+      bgMuted: '#F9FAFB',
+      fg: '#0F172A',
+      border: '#E5E7EB',
+      hover: '#F3F4F6',
+    },
     chip: {
       // Consolidated chip families
       priority: {
@@ -66,6 +73,13 @@ export const darkTheme = {
     brand: { 50: '#312E81', 500: '#818CF8', 600: '#A5B4FC' },
     danger: { 50: '#7F1D1D', 600: '#F87171' },
     border: '#334155',
+    control: {
+      bg: '#1E293B',
+      bgMuted: '#0B1220',
+      fg: '#F1F5F9',
+      border: '#334155',
+      hover: '#0F172A',
+    },
     chip: {
       // Consolidated chip families - adjusted for dark mode
       priority: {

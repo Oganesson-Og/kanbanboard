@@ -159,6 +159,24 @@ async def list_users(current_user: User = Depends(get_current_user), db: Session
     users = db.query(User).all()
     return [UserResponse.model_validate(u, from_attributes=True) for u in users]
 
+@app.post("/users", response_model=UserResponse)
+async def admin_create_user(user: models.UserCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user or not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    existing_email = db.query(User).filter(User.email == user.email).first()
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    existing_username = db.query(User).filter(User.username == user.username).first()
+    if existing_username:
+        raise HTTPException(status_code=400, detail="Username already taken")
+    hashed = create_access_token  # placeholder to keep imports - real hash below
+    hashed = get_password_hash(user.password)
+    db_user = User(email=user.email, username=user.username, full_name=user.full_name, hashed_password=hashed)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return UserResponse.model_validate(db_user, from_attributes=True)
+
 
 @app.get("/")
 async def root():
@@ -281,7 +299,8 @@ async def login_user(credentials: LoginCredentials, db: Session = Depends(get_db
 async def get_boards(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Authentication required")
-    boards = db.query(Board).filter(Board.created_by == current_user.id).all()
+    # Return all boards (visible to every authenticated user)
+    boards = db.query(Board).all()
     return [BoardResponse.from_orm(board) for board in boards]
 
 @app.post("/boards", response_model=BoardResponse)
@@ -319,6 +338,29 @@ async def get_board(board_id: int, current_user: User = Depends(get_current_user
     if not board:
         raise HTTPException(status_code=404, detail="Board not found")
     return BoardResponse.from_orm(board)
+
+@app.delete("/boards/{board_id}")
+async def delete_board(board_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    # Verify board ownership
+    board = db.query(Board).filter(Board.id == board_id, Board.created_by == current_user.id).first()
+    if not board:
+        raise HTTPException(status_code=404, detail="Board not found")
+
+    # Delete all tasks, columns, and comments associated with the board
+    # First delete tasks (which will cascade to comments)
+    db.query(Task).filter(Task.board_id == board_id).delete()
+
+    # Then delete columns
+    db.query(Column).filter(Column.board_id == board_id).delete()
+
+    # Finally delete the board
+    db.delete(board)
+    db.commit()
+
+    return {"message": "Board deleted successfully"}
 
 # Column endpoints
 @app.post("/boards/{board_id}/columns", response_model=ColumnResponse)
@@ -627,6 +669,20 @@ async def delete_comment(comment_id: int, current_user: User = Depends(get_curre
     db.delete(comment)
     db.commit()
     return {"message": "Comment deleted"}
+
+# Admin-only delete user and reassign tasks
+@app.delete("/users/{user_id}")
+async def admin_delete_user(user_id: int, reassign_to_id: Optional[int] = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user or not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Reassign tasks
+    db.query(Task).filter(Task.assignee_id == user_id).update({Task.assignee_id: reassign_to_id})
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted"}
 
 # Health check endpoint
 @app.get("/health")

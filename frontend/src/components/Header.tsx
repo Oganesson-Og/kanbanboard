@@ -65,6 +65,9 @@ const CreateBoardButton = styled(PrimaryButton)``
 
 const BoardSelect = styled(SelectPrimitive)`
   min-width: 160px;
+  background: ${({ theme }) => theme.color.control.bg};
+  color: ${({ theme }) => theme.color.control.fg};
+  border-color: ${({ theme }) => theme.color.control.border};
 `
 
 const Header: React.FC<HeaderProps> = ({ user, onCreateBoard, boards = [], selectedBoardId, onSelectBoard }) => {

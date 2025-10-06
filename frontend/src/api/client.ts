@@ -88,6 +88,11 @@ export const userAPI = {
     const response = await api.get('/users')
     return response.data
   },
+  createUser: async (userData: { email: string; username: string; full_name: string; password: string }): Promise<User> => {
+    // Use the same register endpoint as login/register screen
+    const response = await api.post('/auth/register', userData)
+    return response.data.user
+  },
 }
 
 export const columnAPI = {

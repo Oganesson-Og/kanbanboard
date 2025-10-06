@@ -1,2 +1,40 @@
 /* CSS Reset and Base Styles */
 
+:root {
+  /* Status colors */
+  --col-backlog: #7C3AED;   /* purple 600 */
+  --col-todo: #2563EB;      /* blue 600 */
+  --col-progress: #EAB308;  /* yellow 500 */
+  --col-done: #22C55E;      /* green 500 */
+}
+
+/* Column top-only glow using pseudo-element (no side/bottom glow) */
+.kanban-col { position: relative; overflow: visible; }
+.col-topglow-backlog::before,
+.col-topglow-todo::before,
+.col-topglow-progress::before,
+.col-topglow-done::before {
+  content: "";
+  position: absolute;
+  top: -2px; left: 8px; right: 8px; height: 10px;
+  border-radius: 12px;
+  pointer-events: none;
+  filter: blur(6px);
+}
+.col-topglow-backlog::before  { background: radial-gradient(60% 60% at 50% 0%, rgba(124,58,237,.45),  transparent 70%); }
+.col-topglow-todo::before     { background: radial-gradient(60% 60% at 50% 0%, rgba(37,99,235,.40),   transparent 70%); }
+.col-topglow-progress::before { background: radial-gradient(60% 60% at 50% 0%, rgba(234,179,8,.45),   transparent 70%); }
+.col-topglow-done::before     { background: radial-gradient(60% 60% at 50% 0%, rgba(34,197,94,.40),   transparent 70%); }
+
+/* Workload summary bar colors */
+.wl-bar-backlog { background: var(--col-backlog); }
+.wl-bar-todo { background: var(--col-todo); }
+.wl-bar-progress { background: var(--col-progress); }
+.wl-bar-done { background: var(--col-done); }
+
+/* Column top border colors to match glow */
+.col-border-backlog { border-top-color: var(--col-backlog) !important; }
+.col-border-todo { border-top-color: var(--col-todo) !important; }
+.col-border-progress { border-top-color: var(--col-progress) !important; }
+.col-border-done { border-top-color: var(--col-done) !important; }
+

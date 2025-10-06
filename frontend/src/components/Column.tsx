@@ -18,6 +18,8 @@ const ColumnContainer = styled(ColumnSurface)`
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: visible; /* allow glow shadows to show */
+  /* top-only glow handled via global ::before classes */
 `
 
 const ColumnHeader = styled.div`
@@ -76,6 +78,15 @@ const AddTaskButton = styled.button`
 `
 
 const Column: React.FC<ColumnProps> = ({ column, onTaskCommentsClick, onTaskEditClick, onTaskDeleteClick, onAddTaskClick }) => {
+  const getShadowClass = (name: string): string => {
+    const key = name.trim().toLowerCase()
+    const base = 'kanban-col '
+    if (key === 'backlog') return base + 'col-topglow-backlog col-border-backlog'
+    if (key === 'to do' || key === 'todo') return base + 'col-topglow-todo col-border-todo'
+    if (key === 'in progress') return base + 'col-topglow-progress col-border-progress'
+    if (key === 'done') return base + 'col-topglow-done col-border-done'
+    return base.trim()
+  }
   const totalRemaining = useMemo(() => {
     return column.tasks.reduce((sum, t) => {
       const estimated = t.estimated_hours || 0
@@ -131,7 +142,7 @@ const Column: React.FC<ColumnProps> = ({ column, onTaskCommentsClick, onTaskEdit
   }
 
   return (
-    <ColumnContainer role="section" aria-labelledby={`col-${column.id}`}>
+    <ColumnContainer role="section" aria-labelledby={`col-${column.id}`} className={getShadowClass(column.name)}>
       <ColumnHeader>
         <ColumnTitle id={`col-${column.id}`}>{column.name}</ColumnTitle>
         <div style={{ display: 'flex', alignItems: 'center' }}>
