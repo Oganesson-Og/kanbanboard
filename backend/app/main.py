@@ -57,6 +57,7 @@ class LoginCredentials(BaseModel):
 
 from .websocket import manager, WebSocketEvent, create_event_message, notify_task_assignment
 from .auth import get_current_user, get_current_user_ws, authenticate_user, create_access_token, get_password_hash
+from .seed_admin import ensure_admin_user
 
 app = FastAPI(title="Kanban Board API", version="1.0.0")
 
@@ -94,6 +95,18 @@ app.add_middleware(
 
 # OAuth2 scheme for authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+# Startup hook to ensure an admin user exists (configurable via env)
+@app.on_event("startup")
+async def startup_seed_admin() -> None:
+    email = os.getenv("ADMIN_EMAIL")
+    username = os.getenv("ADMIN_USERNAME")
+    password = os.getenv("ADMIN_PASSWORD")
+    if email and username and password:
+        logger.info("🛠️  Ensuring admin user exists based on environment configuration")
+        ensure_admin_user(email=email, username=username, password=password)
+    else:
+        logger.info("ℹ️  ADMIN_ env vars not set; skipping admin seed")
+
 
 
 # Enhanced WebSocket endpoint for real-time updates

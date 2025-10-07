@@ -12,6 +12,14 @@ const baseTheme = {
 
 export const lightTheme = {
   ...baseTheme,
+  // Semantic aliases for easier theming across components
+  surface: '#FFFFFF',
+  surfaceElevated: '#FFFFFF',
+  bg: '#F7F8FA',
+  text: { primary: '#0F172A', muted: '#64748B' },
+  border: { default: '#E5E7EB', subtle: '#EDEFF2' },
+  brand: { solid: '#6366F1', subtle: '#EEF2FF', ring: 'rgba(99,102,241,.35)' },
+  chart: { good: '#22C55E', warn: '#F59E0B', neutral: '#94A3B8' },
   shadow: {
     0: 'none' as const,
     1: '0 1px 2px rgba(16,24,40,.06)' as string,
@@ -59,6 +67,13 @@ export const lightTheme = {
 
 export const darkTheme = {
   ...baseTheme,
+  surface: '#1E293B',
+  surfaceElevated: '#0B1220',
+  bg: '#0F172A',
+  text: { primary: '#F1F5F9', muted: '#94A3B8' },
+  border: { default: '#334155', subtle: '#243244' },
+  brand: { solid: '#818CF8', subtle: '#312E81', ring: 'rgba(129,140,248,.4)' },
+  chart: { good: '#4ADE80', warn: '#FBBF24', neutral: '#64748B' },
   shadow: {
     0: 'none' as const,
     1: '0 2px 4px rgba(0,0,0,.4)' as string,

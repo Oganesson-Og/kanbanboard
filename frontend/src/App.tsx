@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import styled, { createGlobalStyle } from 'styled-components'
 import Board from './components/Board'
+import WorkloadPage from './components/workload/WorkloadPage'
 import Login from './components/Login'
 import ErrorBoundary from './components/ErrorBoundary'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -85,6 +86,7 @@ function AppContent() {
         <Router>
           <Routes>
             <Route path="/" element={<Board />} />
+            <Route path="/workload" element={<WorkloadPage />} />
           </Routes>
         </Router>
       </ErrorBoundary>

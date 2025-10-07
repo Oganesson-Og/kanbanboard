@@ -79,8 +79,9 @@ export const Chip = styled.span<{ $tone?: 'neutral' | 'brand' | 'success' | 'war
 export const Card = styled(Surface)`
   border-radius: ${({ theme }) => theme.radius.lg}px;
   padding: ${({ theme }) => theme.space[4]}px;
-  transition: box-shadow .16s ${({ theme }) => theme.motion.easing}, transform .16s ${({ theme }) => theme.motion.easing};
-  &:hover { box-shadow: ${({ theme }) => theme.shadow[2]}; transform: translateY(-1px); }
+  /* Important: avoid transform animations which conflict with DnD positioning */
+  transition: box-shadow .16s ${({ theme }) => theme.motion.easing};
+  &:hover { box-shadow: ${({ theme }) => theme.shadow[2]}; }
   &:focus-within { box-shadow: ${({ theme }) => theme.focus.ring}; }
 `
 

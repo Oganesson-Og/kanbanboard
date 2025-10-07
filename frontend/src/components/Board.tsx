@@ -7,7 +7,7 @@ import { boardAPI, taskAPI, userAPI } from '../api/client'
 import websocketService from '../services/websocket'
 import { Board as BoardType, Task, CreateBoardRequest, CreateTaskRequest } from '../types'
 import ColumnComponent from './Column'
-import WorkloadView from './Workload/WorkloadView'
+// Workload view moved to dedicated route/page
 import CreateBoardModal from './CreateBoardModal'
 import EditTaskModal from './EditTaskModal'
 import CreateTaskModal from './CreateTaskModal'
@@ -49,23 +49,7 @@ const BoardTitle = styled.h1`
   font-weight: 700;
 `
 
-const Tabs = styled.div`
-  position: sticky; top: 84px; z-index: 20; /* under header */
-  display: inline-flex; border: 1px solid ${({ theme }) => theme.color.control.border}; border-radius: 10px; overflow: hidden; background: ${({ theme }) => theme.color.control.bgMuted};
-  height: 44px;
-`
-
-const TabButton = styled.button<{ $active?: boolean }>`
-  padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px;
-  background: ${({ $active, theme }) => ($active ? theme.color.control.bg : 'transparent')};
-  color: ${({ $active, theme }) => ($active ? theme.color.control.fg : theme.color.text.muted)};
-  outline: none; border: none;
-  &:focus-visible { box-shadow: ${({ theme }) => theme.focus.ring}; }
-`
-
-const ViewWrapper = styled.div<{ $visible: boolean }>`
-  display: ${({ $visible }) => ($visible ? 'block' : 'none')};
-`
+// Removed internal tabs in favor of header segmented nav
 
 // removed old button styles; using Header actions
 
@@ -114,14 +98,10 @@ const Board: React.FC = () => {
     { id: 'design', name: 'Design', color: '#34495e' }
   ])
   const [users, setUsers] = useState<any[]>([])
-  const [query, setQuery] = useState('')
   const [showSettings, setShowSettings] = useState(false)
-  const [view, setView] = useState<'board'|'workload'>(() => {
-    const url = new URL(window.location.href)
-    const fromUrl = url.searchParams.get('view')
-    const fromLS = localStorage.getItem('kanban_view')
-    return (fromUrl === 'workload' || fromLS === 'workload') ? 'workload' : 'board'
-  })
+  // search query lifted here and passed to header
+  const [view] = useState<'board'>('board')
+  const [query, setQuery] = useState('')
 
   // Track drag state to avoid re-renders that unmount draggables mid-drag
   const [isDragging, setIsDragging] = useState(false)
@@ -230,13 +210,7 @@ const Board: React.FC = () => {
       setIsLoading(false)
     }
   }, [user, token])
-  // Persist view in URL and localStorage
-  useEffect(() => {
-    const url = new URL(window.location.href)
-    url.searchParams.set('view', view)
-    window.history.replaceState({}, '', url.toString())
-    localStorage.setItem('kanban_view', view)
-  }, [view])
+  // Persist search (optional) no-op
 
 
   // Connect to WebSocket when board is selected
@@ -557,7 +531,7 @@ const Board: React.FC = () => {
       ...selectedBoard,
       columns: filteredColumns
     }
-  }, [selectedBoard, selectedTagIds, availableTags, isDragging])
+  }, [selectedBoard, selectedTagIds, availableTags, isDragging, query])
 
   console.log('Board render - State check:', { 
     hasUser: !!user, 
@@ -615,6 +589,9 @@ const Board: React.FC = () => {
             const found = boards.find(b => b.id === id)
             if (found) setSelectedBoard(found)
           }}
+          onOpenSettings={() => setShowSettings(true)}
+          searchValue={query}
+          onSearchChange={setQuery}
         />
 
         <BoardHeader>
@@ -637,22 +614,7 @@ const Board: React.FC = () => {
               <BoardTitle>Select a Board</BoardTitle>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input
-              aria-label="Search"
-              placeholder="Search by title, assignee, tag"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              style={{ height: 36, padding: '0 12px', borderRadius: 8, border: `1px solid ${'#'}${''}`, background: 'transparent' }}
-            />
-            <Tabs role="tablist" aria-label="View switch">
-              <TabButton role="tab" aria-selected={view==='board'} $active={view==='board'} onClick={() => setView('board')}>Board</TabButton>
-              <TabButton role="tab" aria-selected={view==='workload'} $active={view==='workload'} onClick={() => setView('workload')}>Workload</TabButton>
-            </Tabs>
-            {selectedBoard && (
-              <button onClick={() => setShowSettings(true)} style={{ height: 36, padding: '0 12px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff' }}>Settings</button>
-            )}
-          </div>
+          <div />
         </BoardHeader>
 
       {selectedBoard && (
@@ -664,29 +626,20 @@ const Board: React.FC = () => {
       )}
 
       {filteredBoard ? (
-        <>
-          <ViewWrapper $visible={view === 'board'}>
-            <DragDropContext onDragStart={() => setIsDragging(true)} onDragEnd={handleTaskMove}>
-              <BoardGrid>
-                {filteredBoard.columns.map((column) => (
-                  <ColumnComponent
-                    key={column.id}
-                    column={column}
-                    onTaskCommentsClick={handleTaskCommentsClick}
-                    onTaskEditClick={handleTaskEditClick}
-                    onTaskDeleteClick={handleTaskDeleteClick}
-                    onAddTaskClick={() => handleAddTaskClick(column.id)}
-                  />
-                ))}
-              </BoardGrid>
-            </DragDropContext>
-          </ViewWrapper>
-          <ViewWrapper $visible={view === 'workload'}>
-            <div style={{ marginTop: 16 }}>
-              <WorkloadView board={filteredBoard} onReassignUser={reassignUser} />
-            </div>
-          </ViewWrapper>
-        </>
+        <DragDropContext onDragStart={() => setIsDragging(true)} onDragEnd={handleTaskMove}>
+          <BoardGrid>
+            {filteredBoard.columns.map((column) => (
+              <ColumnComponent
+                key={column.id}
+                column={column}
+                onTaskCommentsClick={handleTaskCommentsClick}
+                onTaskEditClick={handleTaskEditClick}
+                onTaskDeleteClick={handleTaskDeleteClick}
+                onAddTaskClick={() => handleAddTaskClick(column.id)}
+              />
+            ))}
+          </BoardGrid>
+        </DragDropContext>
       ) : (
         <div style={{ textAlign: 'center', marginTop: '4rem', color: '#666' }}>
           <p>No boards available. Create your first board to get started!</p>

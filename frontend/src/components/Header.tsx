@@ -1,9 +1,11 @@
 import React from 'react'
 import styled from 'styled-components'
-import { Toolbar, HStack, Select as SelectPrimitive, PrimaryButton, IconButton } from './primitives'
+import { Toolbar, HStack, Select as SelectPrimitive, PrimaryButton, IconButton, Input } from './primitives'
 import { User, Board as BoardType } from '../types'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Segmented, SegItem } from './common/Segmented'
 
 interface HeaderProps {
   user?: User | null
@@ -11,6 +13,9 @@ interface HeaderProps {
   boards?: BoardType[]
   selectedBoardId?: number | null
   onSelectBoard?: (boardId: number) => void
+  onOpenSettings?: () => void
+  searchValue?: string
+  onSearchChange?: (q: string) => void
 }
 
 const HeaderContainer = styled(Toolbar)``
@@ -70,9 +75,11 @@ const BoardSelect = styled(SelectPrimitive)`
   border-color: ${({ theme }) => theme.color.control.border};
 `
 
-const Header: React.FC<HeaderProps> = ({ user, onCreateBoard, boards = [], selectedBoardId, onSelectBoard }) => {
+const Header: React.FC<HeaderProps> = ({ user, onCreateBoard, boards = [], selectedBoardId, onSelectBoard, onOpenSettings, searchValue, onSearchChange }) => {
   const { logout } = useAuth()
   const { themeMode, toggleTheme } = useTheme()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -100,6 +107,25 @@ const Header: React.FC<HeaderProps> = ({ user, onCreateBoard, boards = [], selec
               ))}
             </BoardSelect>
           )}
+
+          <Input aria-label="Search across board" placeholder="Search by title, assignee, tag" style={{ minWidth: 280 }} value={searchValue ?? ''} onChange={(e)=> onSearchChange && onSearchChange(e.target.value)} />
+
+          <Segmented role="tablist" aria-label="View switch">
+            <SegItem
+              $active={location.pathname === '/'}
+              role="tab"
+              aria-selected={location.pathname === '/'}
+              onClick={() => navigate('/')}
+            >Board</SegItem>
+            <SegItem
+              $active={location.pathname === '/workload'}
+              role="tab"
+              aria-selected={location.pathname === '/workload'}
+              onClick={() => navigate('/workload')}
+            >Workload</SegItem>
+          </Segmented>
+
+          <IconButton aria-label="Board settings" onClick={onOpenSettings}>⚙️</IconButton>
           <UserDetails>
             <UserName>{user.full_name || user.username}</UserName>
             <UserEmail>{user.email}</UserEmail>
