@@ -208,8 +208,8 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     logger.info(f"👨‍💼 Full Name: {user.full_name}")
     logger.info(f"🔑 Password: {'*' * len(user.password)}")
 
-    # Check if pending registration is enabled
-    pending_registration = os.getenv("PENDING_REGISTRATION", "false").lower() == "true"
+    # Check if pending registration is enabled (default: true to support admin approval flow)
+    pending_registration = os.getenv("PENDING_REGISTRATION", "true").lower() == "true"
     logger.info(f"⚙️ Pending registration mode: {pending_registration}")
 
     # Check if user already exists
@@ -257,6 +257,7 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
                     "username": db_user.username,
                     "full_name": db_user.full_name,
                     "is_active": db_user.is_active,
+                    "is_admin": getattr(db_user, 'is_admin', False),
                     "created_at": db_user.created_at
                 }
             }
@@ -274,6 +275,7 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
                 "username": db_user.username,
                 "full_name": db_user.full_name,
                 "is_active": db_user.is_active,
+                "is_admin": getattr(db_user, 'is_admin', False),
                 "created_at": db_user.created_at
             }
         }
@@ -716,6 +718,15 @@ async def delete_comment(comment_id: int, current_user: User = Depends(get_curre
     db.delete(comment)
     db.commit()
     return {"message": "Comment deleted"}
+
+# Admin-only: Get pending users
+@app.get("/users/pending", response_model=List[UserResponse])
+async def get_pending_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user or not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    pending_users = db.query(User).filter(User.is_active == False).all()
+    return [UserResponse.model_validate(u, from_attributes=True) for u in pending_users]
 
 # Admin-only: Approve a pending user
 @app.post("/users/{user_id}/approve", response_model=UserResponse)

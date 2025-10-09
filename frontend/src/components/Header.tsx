@@ -16,12 +16,13 @@ interface HeaderProps {
   onOpenSettings?: () => void
   searchValue?: string
   onSearchChange?: (q: string) => void
+  onOpenUserManagement?: () => void
 }
 
 const HeaderContainer = styled(Toolbar)``
 
 const Logo = styled.div`
-  font-size: 1.25rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: ${({ theme }) => theme.color.text.primary};
 `
@@ -75,7 +76,7 @@ const BoardSelect = styled(SelectPrimitive)`
   border-color: ${({ theme }) => theme.color.control.border};
 `
 
-const Header: React.FC<HeaderProps> = ({ user, onCreateBoard, boards = [], selectedBoardId, onSelectBoard, onOpenSettings, searchValue, onSearchChange }) => {
+const Header: React.FC<HeaderProps> = ({ user, onCreateBoard, boards = [], selectedBoardId, onSelectBoard, onOpenSettings, searchValue, onSearchChange, onOpenUserManagement }) => {
   const { logout } = useAuth()
   const { themeMode, toggleTheme } = useTheme()
   const location = useLocation()
@@ -125,6 +126,7 @@ const Header: React.FC<HeaderProps> = ({ user, onCreateBoard, boards = [], selec
             >Workload</SegItem>
           </Segmented>
 
+          {onOpenUserManagement && <IconButton aria-label="User management" onClick={onOpenUserManagement}>👥</IconButton>}
           <IconButton aria-label="Board settings" onClick={onOpenSettings}>⚙️</IconButton>
           <UserDetails>
             <UserName>{user.full_name || user.username}</UserName>

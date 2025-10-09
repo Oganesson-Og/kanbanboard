@@ -16,6 +16,7 @@ import CommentsSection from './CommentsSection'
 import TagFilter from './TagFilter'
 import { Tag } from '../types'
 import BoardSettingsDialog from './BoardSettingsDialog'
+import UserManagementModal from './admin/UserManagementModal'
 
 const BoardContainer = styled.div`
   min-height: 100vh;
@@ -38,12 +39,12 @@ const BoardHeader = styled(Surface)`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-  padding: 20px 24px;
+  padding: 16px 24px;
   border-radius: ${({ theme }) => theme.radius.lg}px;
 `
 
 const BoardTitle = styled.h1`
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   color: ${({ theme }) => theme.color.text.primary};
   margin: 0;
   font-weight: 700;
@@ -99,6 +100,7 @@ const Board: React.FC = () => {
   ])
   const [users, setUsers] = useState<any[]>([])
   const [showSettings, setShowSettings] = useState(false)
+  const [showUserManagement, setShowUserManagement] = useState(false)
   // search query lifted here and passed to header
   const [view] = useState<'board'>('board')
   const [query, setQuery] = useState('')
@@ -592,6 +594,7 @@ const Board: React.FC = () => {
           onOpenSettings={() => setShowSettings(true)}
           searchValue={query}
           onSearchChange={setQuery}
+          onOpenUserManagement={user?.is_admin ? () => setShowUserManagement(true) : undefined}
         />
 
         <BoardHeader>
@@ -683,6 +686,12 @@ const Board: React.FC = () => {
             setError(err.response?.data?.detail || 'Failed to delete board')
           }
         }}
+      />
+      
+      <UserManagementModal
+        isOpen={showUserManagement}
+        onClose={() => setShowUserManagement(false)}
+        currentUserId={user?.id}
       />
 
       {showCommentsModal && selectedTask && (

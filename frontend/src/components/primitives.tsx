@@ -16,11 +16,12 @@ export const Toolbar = styled.header`
   align-items: center;
   justify-content: space-between;
   gap: ${({ theme }) => theme.space[4]}px;
-  padding: ${({ theme }) => `${theme.space[3]}px ${theme.space[5]}px`};
+  padding: ${({ theme }) => `${theme.space[4]}px ${theme.space[6]}px`};
   background: ${({ theme }) => theme.color.surface};
   backdrop-filter: blur(10px);
   border-bottom: 1px solid ${({ theme }) => theme.color.border};
   transition: background 0.3s ease, border-color 0.3s ease;
+  min-height: 72px;
 `
 
 export const IconButton = styled.button<{ $variant?: 'default' | 'danger' }>`

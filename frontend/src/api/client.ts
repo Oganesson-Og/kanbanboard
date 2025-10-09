@@ -88,10 +88,24 @@ export const userAPI = {
     const response = await api.get('/users')
     return response.data
   },
+  getPendingUsers: async (): Promise<User[]> => {
+    const response = await api.get('/users/pending')
+    return response.data
+  },
   createUser: async (userData: { email: string; username: string; full_name: string; password: string }): Promise<User> => {
-    // Use the same register endpoint as login/register screen
-    const response = await api.post('/auth/register', userData)
-    return response.data.user
+    const response = await api.post('/users', userData)
+    return response.data
+  },
+  approveUser: async (userId: number): Promise<User> => {
+    const response = await api.post(`/users/${userId}/approve`)
+    return response.data
+  },
+  makeAdmin: async (userId: number): Promise<User> => {
+    const response = await api.post(`/users/${userId}/make_admin`)
+    return response.data
+  },
+  deleteUser: async (userId: number, reassignToId?: number): Promise<void> => {
+    await api.delete(`/users/${userId}`, { params: { reassign_to_id: reassignToId } })
   },
 }
 

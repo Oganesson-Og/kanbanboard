@@ -74,6 +74,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authAPI.register(userData)
       const token = response.access_token
       const user = response.user
+      const tokenType = response.token_type
+
+      // Pending registration flow: no token is issued; user awaits admin approval
+      if (tokenType === 'pending' && user) {
+        // Optionally store pending user info to show a message
+        localStorage.setItem('pending_user', JSON.stringify({ email: user.email, username: user.username }))
+        // Ensure no auth state is set yet
+        setToken(null)
+        setUser(null)
+        return
+      }
 
       if (token && user) {
         localStorage.setItem('access_token', token)

@@ -5,11 +5,11 @@ import { Surface } from '../primitives'
 
 const Container = styled(Surface)`
   display: flex; justify-content: space-between; align-items: center;
-  padding: 20px 24px; margin: 16px 0; border-radius: ${({theme})=>theme.radius.lg}px;
+  padding: 14px 20px; margin: 12px 0; border-radius: ${({theme})=>theme.radius.lg}px;
 `
 
 const Title = styled.h1`
-  margin:0; font-size: 1.5rem; color: ${({theme})=>theme.color.text.primary};
+  margin:0; font-size: 1.25rem; color: ${({theme})=>theme.color.text.primary};
 `
 
 interface Props { board: Board }

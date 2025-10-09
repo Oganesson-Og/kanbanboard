@@ -8,6 +8,8 @@ import WorkloadSummary from './WorkloadSummary'
 import UserWorkloadCard from './UserWorkloadCard'
 import { useAuth } from '../../contexts/AuthContext'
 import BoardSettingsDialog from '../BoardSettingsDialog'
+import PendingUsersPanel from '../admin/PendingUsersPanel'
+import UserManagementModal from '../admin/UserManagementModal'
 
 const Page = styled.div`
   min-height: 100vh; background: ${({theme})=>theme.color.bg}; padding: 24px;
@@ -31,6 +33,7 @@ export default function WorkloadPage(){
   const [users, setUsers] = useState<User[]>([])
   const [query, setQuery] = useState('')
   const [showSettings, setShowSettings] = useState(false)
+  const [showUserManagement, setShowUserManagement] = useState(false)
 
   useEffect(() => {
     boardAPI.getBoards().then(b=>{ setBoards(b); setSelectedBoard(b[0] ?? null) }).catch(()=>{})
@@ -117,11 +120,15 @@ export default function WorkloadPage(){
         onOpenSettings={()=> setShowSettings(true)}
         searchValue={query}
         onSearchChange={setQuery}
+        onOpenUserManagement={user?.is_admin ? () => setShowUserManagement(true) : undefined}
       />
 
       {selectedBoard && (
         <>
           <WorkloadHeader board={selectedBoard} />
+          
+          {user?.is_admin && <PendingUsersPanel onUserApproved={() => userAPI.getUsers().then(setUsers)} />}
+          
           <Grid>
             <WorkloadSummary items={summaryItems} />
             {perUser.map(c => (
@@ -143,6 +150,11 @@ export default function WorkloadPage(){
                 setShowSettings(false)
               }catch{ /* no-op */ }
             }}
+          />
+          <UserManagementModal
+            isOpen={showUserManagement}
+            onClose={() => setShowUserManagement(false)}
+            currentUserId={user?.id}
           />
         </>
       )}
