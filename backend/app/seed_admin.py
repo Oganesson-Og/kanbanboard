@@ -9,8 +9,10 @@ def ensure_admin_user(email: str, username: str, password: str) -> None:
     try:
         user = db.query(User).filter((User.email == email) | (User.username == username)).first()
         if user:
-            if not user.is_admin:
+            # Ensure existing user is both admin and active
+            if not user.is_admin or not user.is_active:
                 user.is_admin = True
+                user.is_active = True
                 db.commit()
             return
 
@@ -21,6 +23,7 @@ def ensure_admin_user(email: str, username: str, password: str) -> None:
             full_name="Administrator",
             hashed_password=hashed,
             is_admin=True,
+            is_active=True,
         )
         db.add(admin)
         db.commit()

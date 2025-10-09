@@ -110,6 +110,7 @@ class UserResponse(BaseModel):
     username: str
     full_name: str
     is_active: bool
+    is_admin: bool
     created_at: datetime
 
     class Config:

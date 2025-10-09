@@ -208,6 +208,10 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     logger.info(f"👨‍💼 Full Name: {user.full_name}")
     logger.info(f"🔑 Password: {'*' * len(user.password)}")
 
+    # Check if pending registration is enabled
+    pending_registration = os.getenv("PENDING_REGISTRATION", "false").lower() == "true"
+    logger.info(f"⚙️ Pending registration mode: {pending_registration}")
+
     # Check if user already exists
     existing_email = db.query(User).filter(User.email == user.email).first()
     if existing_email:
@@ -223,20 +227,41 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
         # Hash password and create user
         logger.info("🔨 Creating new user account...")
         hashed_password = get_password_hash(user.password)
+        
+        # Set is_active based on pending registration setting
+        is_active = not pending_registration
+        
         db_user = User(
             email=user.email,
             username=user.username,
             full_name=user.full_name,
-            hashed_password=hashed_password
+            hashed_password=hashed_password,
+            is_active=is_active
         )
 
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
 
-        logger.info(f"✅ User account created successfully: {db_user.username} (ID: {db_user.id})")
+        logger.info(f"✅ User account created successfully: {db_user.username} (ID: {db_user.id}, Active: {is_active})")
 
-        # Create access token
+        # If pending registration is enabled, don't create token
+        if pending_registration:
+            logger.info("⏳ User pending admin approval")
+            return {
+                "access_token": "",
+                "token_type": "pending",
+                "user": {
+                    "id": db_user.id,
+                    "email": db_user.email,
+                    "username": db_user.username,
+                    "full_name": db_user.full_name,
+                    "is_active": db_user.is_active,
+                    "created_at": db_user.created_at
+                }
+            }
+
+        # Create access token for immediate login
         access_token = create_access_token(data={"sub": str(db_user.id)})
 
         logger.info("🎉 Registration completed successfully")
@@ -291,6 +316,14 @@ async def login_user(credentials: LoginCredentials, db: Session = Depends(get_db
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Check if user is active
+    if not user.is_active:
+        logger.warning(f"❌ Login failed: User account is pending approval: {user.username}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is pending admin approval",
+        )
+
     logger.info(f"✅ Login successful for user: {user.username} (ID: {user.id})")
     access_token = create_access_token(data={"sub": str(user.id)})
 
@@ -303,6 +336,7 @@ async def login_user(credentials: LoginCredentials, db: Session = Depends(get_db
             "username": user.username,
             "full_name": user.full_name,
             "is_active": user.is_active,
+            "is_admin": getattr(user, 'is_admin', False),
             "created_at": user.created_at
         }
     }
@@ -682,6 +716,40 @@ async def delete_comment(comment_id: int, current_user: User = Depends(get_curre
     db.delete(comment)
     db.commit()
     return {"message": "Comment deleted"}
+
+# Admin-only: Approve a pending user
+@app.post("/users/{user_id}/approve", response_model=UserResponse)
+async def approve_user(user_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user or not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.is_active = True
+    db.commit()
+    db.refresh(user)
+    
+    logger.info(f"✅ User approved: {user.username} (ID: {user.id}) by admin {current_user.username}")
+    return UserResponse.model_validate(user, from_attributes=True)
+
+# Admin-only: Promote a user to admin
+@app.post("/users/{user_id}/make_admin", response_model=UserResponse)
+async def make_user_admin(user_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user or not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.is_admin = True
+    db.commit()
+    db.refresh(user)
+    
+    logger.info(f"👑 User promoted to admin: {user.username} (ID: {user.id}) by admin {current_user.username}")
+    return UserResponse.model_validate(user, from_attributes=True)
 
 # Admin-only delete user and reassign tasks
 @app.delete("/users/{user_id}")
